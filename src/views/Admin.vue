@@ -2,12 +2,32 @@
   <div class="container">
     <div class="header">
       <div class="button_wrapper">
-        <button>Save</button>
-        <button>Undo</button>
-        <button>Redo</button>
+        <button @click="handleSave">Save</button>
+        <button @click="handleUndo" :disabled="!selectedList.length">
+          Undo
+        </button>
+        <button @click="handleRedo" :disabled="!tempElementList.length">
+          Redo
+        </button>
         <button @click="handleExport">Export</button>
-        <input type="file" @change="uploadFile" />
-        <button>View</button>
+        <button
+          @click="
+            () => {
+              uploadInput.click();
+            }
+          "
+        >
+          Import
+        </button>
+        <input
+          ref="uploadInput"
+          :key="resetUploadInput"
+          id="upload-input"
+          type="file"
+          @change="uploadFile"
+          hidden
+        />
+        <button @click="handleRedirectToConsumerPage">View</button>
       </div>
     </div>
     <div class="body">
@@ -63,6 +83,10 @@ import { onMounted, onUnmounted, reactive, ref } from "vue";
 import InputElements from "../components/InputElements.vue";
 import Element from "../components/Element.vue";
 import { json2xml, xml2json, downloadXMLFile } from "../ultis/index";
+import { db } from "../firebase/firebaseInit";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import router from "../router/index";
+
 const leftSideData = [
   {
     id: "0",
@@ -84,7 +108,11 @@ const mousePosition = reactive({
   pageY: 0,
 });
 const selectedElement = ref({});
-onMounted(() => {
+const tempElementList = ref([]);
+const resetUploadInput = ref(0);
+const uploadInput = ref(null);
+initData();
+onMounted(async () => {
   dropSection.value.addEventListener("mousemove", (e) => {
     let rect = dropSection.value.getBoundingClientRect();
     mousePosition.pageX = Number(e.x) - Number(rect.x);
@@ -107,6 +135,7 @@ onMounted(() => {
           : "ElementButton",
       props: {},
     });
+    tempElementList.value = [];
   });
 });
 onUnmounted(() => {
@@ -115,6 +144,15 @@ onUnmounted(() => {
   dropSection.value.removeEventListener("dragover");
   dropSection.value.removeEventListener("drop");
 });
+async function initData() {
+  let docRef = doc(db, "template", "templateDoc");
+  try {
+    let res = await getDoc(docRef);
+    selectedList.value = res.data().data;
+  } catch (error) {
+    alert("there is some errors");
+  }
+}
 function generateId() {
   return `id${Math.random().toString(16).slice(2)}`;
 }
@@ -138,6 +176,12 @@ function handleExport() {
 function uploadFile(e) {
   let readXml = null;
   let file = e.target.files[0];
+  console.log(e);
+  const fileType = file.name.split(".");
+  if (fileType[fileType.length - 1] !== "xml") {
+    alert("file must be of type xml");
+    return;
+  }
   var reader = new FileReader();
   reader.onload = function (e) {
     readXml = e.target.result;
@@ -145,9 +189,40 @@ function uploadFile(e) {
     let {
       root: { data },
     } = xml2json(XmlNode);
-    selectedList.value = data;
+    if (data) {
+      selectedList.value = Array.isArray(data) ? data : [data];
+      selectedElement.value = {};
+    } else {
+      alert("data is not in the correct format");
+    }
+    resetUploadInput.value++;
   };
   reader.readAsText(file);
+}
+function handleUndo() {
+  if (!selectedList.value.length) return;
+  const removedElement = selectedList.value.pop();
+  tempElementList.value.push(removedElement);
+}
+function handleRedo() {
+  if (!tempElementList.value.length) return;
+  const addedElement = tempElementList.value.pop();
+  selectedList.value.push(addedElement);
+}
+async function handleSave() {
+  let docRef = doc(db, "template", "templateDoc");
+  try {
+    await setDoc(docRef, {
+      data: selectedList.value,
+    });
+    tempElementList.value = [];
+  } catch (error) {
+    alert("save unsuccessfully");
+  }
+}
+function handleRedirectToConsumerPage() {
+  const routeData = router.resolve({ name: "Consumer" });
+  window.open(routeData.href, "_blank");
 }
 </script>
 

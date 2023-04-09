@@ -176,7 +176,6 @@ function handleExport() {
 function uploadFile(e) {
   let readXml = null;
   let file = e.target.files[0];
-  console.log(e);
   const fileType = file.name.split(".");
   if (fileType[fileType.length - 1] !== "xml") {
     alert("file must be of type xml");
@@ -216,6 +215,7 @@ async function handleSave() {
       data: selectedList.value,
     });
     tempElementList.value = [];
+    selectedElement.value = {};
   } catch (error) {
     alert("save unsuccessfully");
   }

@@ -150,7 +150,7 @@ async function initData() {
     let res = await getDoc(docRef);
     selectedList.value = res.data().data;
   } catch (error) {
-    alert("there is some errors");
+    alert("there are some errors");
   }
 }
 function generateId() {

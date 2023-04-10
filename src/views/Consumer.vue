@@ -9,10 +9,10 @@
   </div>
 </template>
 <script setup>
-import { onMounted, onUnmounted, reactive, ref } from "vue";
+import { ref } from "vue";
 import Element from "../components/Element.vue";
 import { db } from "../firebase/firebaseInit";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 const selectedList = ref([]);
 initData();
 async function initData() {
@@ -21,7 +21,7 @@ async function initData() {
     let res = await getDoc(docRef);
     selectedList.value = res.data().data;
   } catch (error) {
-    alert("there is some errors");
+    alert("there are some errors");
   }
 }
 function handleClickElement(ele) {
